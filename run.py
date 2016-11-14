@@ -2,7 +2,7 @@ from rllab.algos.ddpg import DDPG
 from rllab.envs.box2d.cartpole_env import CartpoleEnv
 from rllab.envs.normalized_env import normalize
 from policies import DeterministicMLPPolicy
-from qfuncs import ContinousMLPQ
+from qfuncs import ContinuousMLPQ
 from strategies import OUStrategy
 from utils import SEED
 
@@ -11,7 +11,7 @@ from utils import SEED
 env = normalize(CartpoleEnv)
 
 policy = DeterministicMLPPolicy(env.spec)
-qfunc = ContinousMLPQ(env.spec)
+qfunc = ContinuousMLPQ(env.spec)
 strategy = OUStrategy(env.spec)
 
 # set the training algorithm and train
