@@ -32,7 +32,7 @@ class DeterministicMLPPolicy(Policy):
         super(DeterministicMLPPolicy, self).__init__(env_spec)
 
         self.obs = mx.symbol.Variable("obs")
-        self.act, self.weight = define_policy(
+        self.act = define_policy(
             self.obs, 
             self.env_spec.action_space.flat_dim)
 
@@ -43,8 +43,7 @@ class DeterministicMLPPolicy(Policy):
     def get_loss_symbols(self):
 
         return {"obs": self.obs,
-                "act": self.act, 
-                "weight": self.weight}
+                "act": self.act}
 
     def define_loss(self, loss_exp):
 

@@ -23,7 +23,7 @@ class ContinuousMLPQ(QFunc):
 
         self.obs = mx.symbol.Variable("obs")
         self.act = mx.symbol.Variable("act")
-        self.qval, self.weight = define_qfunc(self.obs, self.act)
+        self.qval = define_qfunc(self.obs, self.act)
         self.yval = mx.symbol.Variable("yval")
 
     def get_output_symbol(self):
@@ -33,8 +33,7 @@ class ContinuousMLPQ(QFunc):
     def get_loss_symbols(self):
 
         return {"qval": self.qval,
-                "yval": self.yval,
-                "weight": self.weight}
+                "yval": self.yval}
 
     def define_loss(self, loss_exp):
 

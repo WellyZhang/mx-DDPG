@@ -6,17 +6,10 @@ SEED = 12345
 
 def define_qfunc(obs, act):
 
-    weight = {
-        "qfunc_fc1_weight": mx.symbol.Variable("qfunc_fc1_weight"),
-        "qfunc_fc2_weight": mx.symbol.Variable("qfunc_fc2_weight"),
-        "qfunc_fc3_weight": mx.symbol.Variable("qfunc_fc3_weight")
-        }
-
     net = mx.symbol.FullyConnected(
         data=obs, 
         name="qfunc_fc1", 
-        num_hidden=32,
-        weight=weight["qfunc_fc1_weight"])
+        num_hidden=32)
     net = mx.symbol.Activation(
         data=net, 
         name="qfunc_relu1", 
@@ -24,8 +17,7 @@ def define_qfunc(obs, act):
     net = mx.symbol.FullyConnected(
         data=net, 
         name="qfunc_fc2", 
-        num_hidden=32,
-        weight=weight["qfunc_fc2_weight"])
+        num_hidden=32)
     net = mx.symbol.Activation(
         data=net, 
         name="qfunc_relu2", 
@@ -34,8 +26,7 @@ def define_qfunc(obs, act):
     net = mx.symbol.FullyConnected(
         data=net, 
         name="qfunc_fc3", 
-        num_hidden=32,
-        weight=weight["qfunc_fc3_weight"])
+        num_hidden=32)
     net = mx.symbol.Activation(
         data=net, 
         name="qfunc_relu3", 
@@ -45,22 +36,15 @@ def define_qfunc(obs, act):
         name="qfunc_qval", 
         num_hidden=1)
 
-    return qval, weight
+    return qval
 
 
 def define_policy(obs, action_dim):
 
-    weight = {
-        "policy_fc1_weight": mx.symbol.Variable("policy_fc1_weight"),
-        "policy_fc2_weight": mx.symbol.Variable("policy_fc2_weight"),
-        "policy_fc3_weight": mx.symbol.Variable("policy_fc3_weight")
-        }
-
     net = mx.symbol.FullyConnected(
         data=obs, 
         name="policy_fc1", 
-        num_hidden=32,
-        weight=weight["policy_fc1_weight"])
+        num_hidden=32)
     net = mx.symbol.Activation(
         data=net, 
         name="policy_relu1", 
@@ -68,8 +52,7 @@ def define_policy(obs, action_dim):
     net = mx.symbol.FullyConnected(
         data=net, 
         name="policy_fc2", 
-        num_hidden=32,
-        weight=weight["policy_fc2_weight"])
+        num_hidden=32)
     net = mx.symbol.Activation(
         data=net, 
         name="policy_relu2", 
@@ -77,11 +60,10 @@ def define_policy(obs, action_dim):
     net = mx.symbol.FullyConnected(
         data=net, 
         name='policy_fc3', 
-        num_hidden=action_dim,
-        weight=weight["policy_fc3_weight"])
+        num_hidden=action_dim)
     action = mx.symbol.Activation(
         data=net, 
         name="act", 
         act_type="tanh")
 
-    return action, weight
+    return action

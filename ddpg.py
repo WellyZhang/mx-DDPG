@@ -19,10 +19,8 @@ class DDPG(object):
         memory_start_size=1000,
         discount=0.99,
         max_path_length=1000,
-        qfunc_weight_decay=0.0,
         qfunc_updater="adam",
         qfunc_lr=1e-4,
-        policy_weight_decay=0.0,
         policy_updater="adam",
         policy_lr=1e-4,
         soft_target_tau=1e-3,
@@ -44,10 +42,8 @@ class DDPG(object):
         self.memory_start_size = memory_start_size
         self.discount = discount
         self.max_path_length = max_path_length
-        self.qfunc_weight_decay = qfunc_weight_decay
         self.qfunc_updater = qfunc_updater
         self.qfunc_lr = qfunc_lr
-        self.policy_weight_decay = policy_weight_decay
         self.policy_updater = policy_updater
         self.policy_lr = policy_lr
         self.soft_target_tau = soft_target_tau
@@ -73,13 +69,9 @@ class DDPG(object):
         loss_symbols = self.qfunc.get_loss_symbols()
         qval_sym = loss_symbols["qval"]
         yval_sym = loss_symbols["yval"]
-        weight_sym_dict = loss_symbols["weight"]
-        reg = self.qfunc_weight_decay * 0.5 * sum(
-            [mx.symbol.sum(mx.symbol.square(arr))
-             for name, arr in weight_sym_dict.items()])
         loss = 1.0 / self.batch_size * mx.symbol.sum(
             mx.symbol.square(qval_sym - yval_sym))
-        qfunc_loss = loss + reg
+        qfunc_loss = loss
         qfunc_updater = mx.optimizer.get_updater(
             mx.optimizer.create(self.qfunc_updater,
                                 learning_rate=self.qfunc_lr))
@@ -107,10 +99,6 @@ class DDPG(object):
         policy_init = mx.initializer.Normal()
         loss_symbols = self.policy.get_loss_symbols()
         act_sym = loss_symbols["act"]
-        weight_sym_dict = loss_symbols["weight"]
-        reg = self.policy_weight_decay * 0.5 * sum(
-            [mx.symbol.sum(mx.symbol.square(arr))
-             for name, arr in weight_sym_dict.items()])
         policy_qval = qval_sym
         loss = -1.0 / self.batch_size * mx.symbol.sum(policy_qval)
         policy_loss = loss + reg
@@ -126,18 +114,13 @@ class DDPG(object):
             init=policy_init,
             updater=policy_updater,
             input_shapes=self.policy_input_shapes)
-        arg_dict = {}
-        for name, arr in self.policy.arg_dict.items():
-        	if "weight" in name:
-        		arg_dict[name] = arr
-        arg_dict.update(self.qfunc.arg_dict)
         
-        self.policy_executor = policy_loss.bind(ctx=self.ctx,
-        	args=arg_dict,
+        self.policy_executor = policy_loss.bind(
+            ctx=self.ctx,
+        	args=self.qfunc.arg_dict,
+            args_grad=self.qfunc.grad_arrays,
             grad_req="write")
         self.policy_executor_arg_dict = self.policy_executor.arg_dict
-        self.policy_executor.forward(is_train=True)
-        self.policy_executor.backward()
         
         self.policy_executor_grad_dict = dict(zip(
             policy_loss.list_arguments(),
@@ -215,6 +198,9 @@ class DDPG(object):
         next_qvals = self.qfunc_target.get_qvals(nxts, next_acts)
 
         ys = rwds + (1.0 - ends) * self.discount * next_qvals
+
+        # since policy_executor shares the grad arrays with qfunc
+        # the update order could not be changed
 
         self.qfunc.update_params(obss, acts, ys)
         qfunc_loss = self.qfunc.exe.outputs[0].asnumpy()
