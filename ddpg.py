@@ -83,9 +83,9 @@ class DDPG(object):
             mx.optimizer.create(self.qfunc_updater,
                                 learning_rate=self.qfunc_lr))
         self.qfunc_input_shapes = {
-            obs=(self.batch_size, self.env.observation_space.flat_dim),
-            act=(self.batch_size, self.env.action_space.flat_dim),
-            yval=(self.batch_size, )}
+            "obs": (self.batch_size, self.env.observation_space.flat_dim),
+            "act": (self.batch_size, self.env.action_space.flat_dim),
+            "yval": (self.batch_size, )}
         self.qfunc.define_loss(qfunc_loss)
         self.qfunc.define_exe(
             ctx=self.ctx, 
@@ -124,7 +124,7 @@ class DDPG(object):
             mx.optimizer.create(self.policy_updater,
                                 learning_rate=self.policy_lr))
         self.policy_input_shapes = {
-            obs=(self.batch_size, self.env.observation_space.flat_dim)}
+            "obs": (self.batch_size, self.env.observation_space.flat_dim)}
         self.policy.define_exe(
             ctx=self.ctx, 
             init=policy_init, 
