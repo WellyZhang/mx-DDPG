@@ -50,13 +50,13 @@ class DeterministicMLPPolicy(Policy):
 
         raise NotImplementedError
 
-    def define_exec(self, ctx, init, updater, input_shapes=None, args=None, 
+    def define_exe(self, ctx, init, updater, input_shapes=None, args=None, 
                     grad_req=None):
 
-        self.exec = self.act.simple_bind(ctx=ctx, **input_shapes)
-        self.arg_arrays = self.exec.arg_arrays
-        self.grad_arrays = self.exec.grad_arrays
-        self.arg_dict = self.exec.arg_dict
+        self.exe = self.act.simple_bind(ctx=ctx, **input_shapes)
+        self.arg_arrays = self.exe.arg_arrays
+        self.grad_arrays = self.exe.grad_arrays
+        self.arg_dict = self.exe.arg_dict
 
         for name, arr in self.arg_dict.items():
             if name not in input_shapes:
@@ -65,12 +65,12 @@ class DeterministicMLPPolicy(Policy):
         self.updater = updater
 
         new_input_shapes = {obs=(1, input_shapes["obs"][1])}
-        self.exec_one = self.exec.reshape(**new_input_shapes)
+        self.exe_one = self.exe.reshape(**new_input_shapes)
 
     def update_params(self, grad_from_top):
 
-        self.exec.forward(is_train=True)
-        self.exec.backward([grad_from_top])
+        self.exe.forward(is_train=True)
+        self.exe.backward([grad_from_top])
 
         for i, pair in enumerate(zip(self.arg_arrays, self.grad_arrays)):
             weight, grad = pair
@@ -79,16 +79,16 @@ class DeterministicMLPPolicy(Policy):
     def get_actions(self, obs):
 
         self.arg_dict["obs"][:] = obs
-        self.exec.forward(is_train=False)
+        self.exe.forward(is_train=False)
 
-        return self.exec.outputs[0].asnumpy()
+        return self.exe.outputs[0].asnumpy()
 
     def get_action(self, obs):
 
         self.arg_dict_one["obs"][:] = obs
-        self.exec_one.forward(is_train=False)
+        self.exe_one.forward(is_train=False)
 
-        return self.exec_one.outputs[0].asnumpy()
+        return self.exe_one.outputs[0].asnumpy()
 
 
 

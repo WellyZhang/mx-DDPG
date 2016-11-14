@@ -87,7 +87,7 @@ class DDPG(object):
             act=(self.batch_size, self.env.action_space.flat_dim),
             yval=(self.batch_size, )}
         self.qfunc.define_loss(qfunc_loss)
-        self.qfunc.define_exec(
+        self.qfunc.define_exe(
             ctx=self.ctx, 
             init=qfunc_init, 
             updater=qfunc_updater,
@@ -125,7 +125,7 @@ class DDPG(object):
                                 learning_rate=self.policy_lr))
         self.policy_input_shapes = {
             obs=(self.batch_size, self.env.observation_space.flat_dim)}
-        self.policy.define_exec(
+        self.policy.define_exe(
             ctx=self.ctx, 
             init=policy_init, 
             updater=policy_updater,
@@ -205,8 +205,8 @@ class DDPG(object):
         ys = rwds + (1.0 - ends) * self.discount * next_qvals
 
         self.qfunc.update_params(obss, acts, ys)
-        qfunc_loss = self.qfunc.exec.outputs[0].asnumpy()
-        qvals = self.qfunc.exec.outputs[1].asnumpy()
+        qfunc_loss = self.qfunc.exe.outputs[0].asnumpy()
+        qvals = self.qfunc.exe.outputs[1].asnumpy()
         self.policy_executor.arg_dict["obs"][:] = obss
         self.policy_executor.arg_dict["act"][:] = policy_acts
         self.policy_executor.forward(is_train=True)

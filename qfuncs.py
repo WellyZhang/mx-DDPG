@@ -41,13 +41,13 @@ class ContinuousMLPQ(QFunc):
         self.loss = mx.symbol.MakeLoss(loss_exp, name="qfunc_loss")
         self.loss = mx.symbol.Group([self.loss, self.qval])
 
-    def define_exec(self, ctx, init, updater, input_shapes=None, args=None, 
+    def define_exe(self, ctx, init, updater, input_shapes=None, args=None, 
                     grad_req=None):
 
-        self.exec = self.loss.simple_bind(ctx=ctx, **input_shapes)
-        self.arg_arrays = self.exec.arg_arrays
-        self.grad_arrays = self.exec.grad_arrays
-        self.arg_dict = self.exec.arg_dict
+        self.exe = self.loss.simple_bind(ctx=ctx, **input_shapes)
+        self.arg_arrays = self.exe.arg_arrays
+        self.grad_arrays = self.exe.grad_arrays
+        self.arg_dict = self.exe.arg_dict
         
         for name, arr in self.arg_dict.items():
             if name not in input_shapes:
@@ -61,8 +61,8 @@ class ContinuousMLPQ(QFunc):
         self.arg_dict["act"][:] = act
         self.arg_dict["yval"][:] = yval
 
-        self.exec.forward(is_train=True)
-        self.exec.backward()
+        self.exe.forward(is_train=True)
+        self.exe.backward()
 
         for i, pair in enumerate(zip(self.arg_arrays, self.grad_arrays)):
             weight, grad = pair
@@ -72,8 +72,8 @@ class ContinuousMLPQ(QFunc):
 
         self.arg_dict["obs"][:] = obs
         self.arg_dict["act"][:] = act
-        self.exec.forward(is_train=False)
+        self.exe.forward(is_train=False)
 
-        return self.exec.outputs[1].asnumpy()
+        return self.exe.outputs[1].asnumpy()
 
 
