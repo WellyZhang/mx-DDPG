@@ -5,6 +5,7 @@ from policies import DeterministicMLPPolicy
 from qfuncs import ContinuousMLPQ
 from strategies import OUStrategy
 from utils import SEED
+import mxnet as mx
 
 # set environment, policy, qfunc, strategy
 
