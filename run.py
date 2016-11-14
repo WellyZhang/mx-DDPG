@@ -28,7 +28,6 @@ algo = DDPG(
     min_pool_size=10000,
     n_epochs=1000,
     discount=0.99,
-    scale_reward=0.01,
     qfunc_lr=1e-3,
     policy_lr=1e-4,
     seed=SEED)
