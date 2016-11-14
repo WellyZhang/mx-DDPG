@@ -7,9 +7,9 @@ SEED = 12345
 def define_qfunc(obs, act):
 
     weight = {
-        qfunc_fc1_weight=mx.symbol.Variable("qfunc_fc1_weight"),
-        qfunc_fc2_weight=mx.symbol.Variable("qfunc_fc2_weight"),
-        qfunc_fc3_weight=mx.symbol.Variable("qfunc_fc3_weight")
+        "qfunc_fc1_weight": mx.symbol.Variable("qfunc_fc1_weight"),
+        "qfunc_fc2_weight": mx.symbol.Variable("qfunc_fc2_weight"),
+        "qfunc_fc3_weight": mx.symbol.Variable("qfunc_fc3_weight")
         }
 
     net = mx.symbol.FullyConnected(
@@ -51,9 +51,9 @@ def define_qfunc(obs, act):
 def define_policy(obs, action_dim):
 
     weight = {
-        policy_fc1_weight=mx.symbol.Variable("policy_fc1_weight"),
-        policy_fc2_weight=mx.symbol.Variable("policy_fc2_weight"),
-        policy_fc3_weight=mx.symbol.Variable("policy_fc3_weight")
+        "policy_fc1_weight": mx.symbol.Variable("policy_fc1_weight"),
+        "policy_fc2_weight": mx.symbol.Variable("policy_fc2_weight"),
+        "policy_fc3_weight": mx.symbol.Variable("policy_fc3_weight")
         }
 
     net = mx.symbol.FullyConnected(
