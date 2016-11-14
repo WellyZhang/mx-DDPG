@@ -75,7 +75,8 @@ class DDPG(object):
         yval_sym = loss_symbols["yval"]
         weight_sym_dict = loss_symbols["weight"]
         reg = self.qfunc_weight_decay * 0.5 * mx.symbol.sum(
-            [mx.symbol.square(arr) for name, arr in weight_sym_dict.items()])
+            [mx.symbol.sum(mx.symbol.square(arr))
+             for name, arr in weight_sym_dict.items()])
         loss = 1.0 / self.batch_size * mx.symbol.sum(
             mx.symbol.square(qval_sym - yval_sym)) 
         qfunc_loss = loss + reg
@@ -108,7 +109,8 @@ class DDPG(object):
         act_sym = loss_symbols["act"]
         weight_sym_dict = loss["weight"]
         reg = self.policy_weight_decay * 0.5 * mx.symbol.sum(
-            [mx.symbol.square(arr) for name, arr in weight_sym_dict.items()])
+            [mx.symbol.sum(mx.symbol.square(arr)) 
+             for name, arr in weight_sym_dict.items()])
         policy_qval = qval_sym
         loss = -1.0 / self.batch_size * mx.symbol.sum(policy_qval)
         policy_loss = loss + reg
