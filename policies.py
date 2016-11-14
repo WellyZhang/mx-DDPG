@@ -64,7 +64,7 @@ class DeterministicMLPPolicy(Policy):
                 
         self.updater = updater
 
-        new_input_shapes = {obs=(1, input_shapes["obs"][1])}
+        new_input_shapes = {"obs": (input_shapes["obs"][1], )}
         self.exe_one = self.exe.reshape(**new_input_shapes)
 
     def update_params(self, grad_from_top):
