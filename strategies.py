@@ -36,6 +36,7 @@ class OUStrategy(BaseStrategy):
 
     def get_action(self, obs, policy):
 
+    	obs = obs.reshape((1, -1))
         action, _ = policy.get_action(obs)
         increment = self.evolve_state()
         
