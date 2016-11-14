@@ -82,6 +82,6 @@ def define_policy(obs, action_dim):
     action = mx.symbol.Activation(
         data=net, 
         name="act", 
-        act_typ="tanh")
+        act_type="tanh")
 
     return action, weight
