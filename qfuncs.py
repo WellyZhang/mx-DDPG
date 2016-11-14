@@ -19,7 +19,7 @@ class ContinuousMLPQ(QFunc):
         self,
         env_spec):
 
-        super(DeepQ, self).__init__(env_spec)
+        super(ContinuousMLPQ, self).__init__(env_spec)
 
         self.obs = mx.symbol.Variable("obs")
         self.act = mx.symbol.Variable("act")
