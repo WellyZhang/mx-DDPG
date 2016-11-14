@@ -42,9 +42,9 @@ class DeterministicMLPPolicy(Policy):
 
     def get_loss_symbols(self):
 
-        return {obs=self.obs,
-                act=self.act, 
-                weight=self.weight}
+        return {"obs": self.obs,
+                "act": self.act, 
+                "weight": self.weight}
 
     def define_loss(self, loss_exp):
 

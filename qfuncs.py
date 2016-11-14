@@ -32,9 +32,9 @@ class ContinuousMLPQ(QFunc):
 
     def get_loss_simbols(self):
 
-        return {qval=self.qval,
-                yval=self.yval,
-                weight=self.weight}
+        return {"qval": self.qval,
+                "yval": self.yval,
+                "weight": self.weight}
 
     def define_loss(self, loss_exp):
 
