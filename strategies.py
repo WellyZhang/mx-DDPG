@@ -37,12 +37,12 @@ class OUStrategy(BaseStrategy):
     def get_action(self, obs, policy):
 
     	obs = obs.reshape((1, -1))
-        action, _ = policy.get_action(obs)
+        action = policy.get_action(obs)
         increment = self.evolve_state()
         
         return np.clip(action + increment, 
-                       self.act_space.low, 
-                       self.act_space.high)
+                       self.action_space.low, 
+                       self.action_space.high)
 
 
 if __name__ == "__main__":

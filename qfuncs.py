@@ -38,7 +38,6 @@ class ContinuousMLPQ(QFunc):
     def define_loss(self, loss_exp):
 
         self.loss = mx.symbol.MakeLoss(loss_exp, name="qfunc_loss")
-        self.loss = mx.symbol.Group([self.loss, self.qval])
 
     def define_exe(self, ctx, init, updater, input_shapes=None, args=None, 
                     grad_req=None):
@@ -53,6 +52,15 @@ class ContinuousMLPQ(QFunc):
                 init(name, arr)
                 
         self.updater = updater
+
+        args = {}
+        for name, arr in self.exe.arg_dict.items():
+            if name in self.qval.list_arguments():
+                args[name] = arr
+        self.exe_qval = self.qval.bind(ctx=ctx,
+                                       args=args,
+                                       grad_req="null")
+
 
     def update_params(self, obs, act, yval):
 
@@ -69,10 +77,10 @@ class ContinuousMLPQ(QFunc):
 
     def get_qvals(self, obs, act):
 
-        self.arg_dict["obs"][:] = obs
-        self.arg_dict["act"][:] = act
-        self.exe.forward(is_train=False)
+        self.exe_qval.arg_dict["obs"][:] = obs
+        self.exe_qval.arg_dict["act"][:] = act
+        self.exe_qval.forward(is_train=False)
 
-        return self.exe.outputs[1].asnumpy()
+        return self.exe_qval.outputs[0].asnumpy()
 
 

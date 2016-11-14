@@ -1,4 +1,6 @@
 from replay_mem import ReplayMem
+import rllab.misc.logger as logger
+import pyprind
 import mxnet as mx
 import numpy as np
 
@@ -87,9 +89,12 @@ class DDPG(object):
             input_shapes=self.qfunc_input_shapes)
 
         # qfunc_target init
-
-        self.qfunc_target = self.qfunc.loss.simple_bind(ctx=self.ctx,
-                                                        **self.qfunc_input_shapes)
+        qfunc_target_shapes = {
+            "obs": (self.batch_size, self.env.observation_space.flat_dim),
+            "act": (self.batch_size, self.env.action_space.flat_dim)
+        	}
+        self.qfunc_target = qval_sym.simple_bind(ctx=self.ctx,
+                                                 **qfunc_target_shapes)
         for name, arr in self.qfunc_target.arg_dict.items():
             if name not in self.qfunc_input_shapes:
                 self.qfunc.arg_dict[name].copyto(arr)
@@ -101,7 +106,7 @@ class DDPG(object):
         act_sym = loss_symbols["act"]
         policy_qval = qval_sym
         loss = -1.0 / self.batch_size * mx.symbol.sum(policy_qval)
-        policy_loss = loss + reg
+        policy_loss = loss
         policy_loss = mx.symbol.MakeLoss(policy_loss, name="policy_loss")
 
         policy_updater = mx.optimizer.get_updater(
@@ -114,11 +119,21 @@ class DDPG(object):
             init=policy_init,
             updater=policy_updater,
             input_shapes=self.policy_input_shapes)
+
+        args = {}
+        for name, arr in self.qfunc.arg_dict.items():
+        	if name != "yval":
+        		args[name] = arr
+        args_grad = {}
+        policy_grad_dict = dict(zip(self.qfunc.loss.list_arguments(), self.qfunc.exe.grad_arrays))
+        for name, arr in policy_grad_dict.items():
+        	if name != "yval":
+        		args_grad[name] = arr
         
         self.policy_executor = policy_loss.bind(
             ctx=self.ctx,
-        	args=self.qfunc.arg_dict,
-            args_grad=self.qfunc.grad_arrays,
+        	args=args,
+            args_grad=args_grad,
             grad_req="write")
         self.policy_executor_arg_dict = self.policy_executor.arg_dict
         
@@ -175,7 +190,7 @@ class DDPG(object):
 
                 if memory.size >= self.memory_start_size:
                     for update_time in xrange(self.n_updates_per_sample):
-                        batch = memroy.get_batch(self.batch_size)
+                        batch = memory.get_batch(self.batch_size)
                         self.do_update(itr, batch)
 
                 itr += 1
@@ -191,20 +206,28 @@ class DDPG(object):
 
     def do_update(self, itr, batch):
 
-        obss, acts, rwds, nxts, ends = batch
+        obss, acts, rwds, ends, nxts = batch
 
-        next_acts = self.policy_target.get_actions(nxts)
+        self.policy_target.arg_dict["obs"][:] = nxts
+        self.policy_target.forward(is_train=False)
+        next_acts = self.policy_target.outputs[0].asnumpy()
         policy_acts = self.policy.get_actions(obss)
-        next_qvals = self.qfunc_target.get_qvals(nxts, next_acts)
+        self.qfunc_target.arg_dict["obs"][:] = nxts
+        self.qfunc_target.arg_dict["act"][:] = next_acts
+        self.qfunc_target.forward(is_train=False)
+        next_qvals = self.qfunc_target.outputs[0].asnumpy()
 
+        rwds = rwds.reshape((-1, 1))
+        ends = ends.reshape((-1, 1))
         ys = rwds + (1.0 - ends) * self.discount * next_qvals
+
 
         # since policy_executor shares the grad arrays with qfunc
         # the update order could not be changed
 
         self.qfunc.update_params(obss, acts, ys)
         qfunc_loss = self.qfunc.exe.outputs[0].asnumpy()
-        qvals = self.qfunc.exe.outputs[1].asnumpy()
+        qvals = self.qfunc.exe_qval.outputs[0].asnumpy()
         self.policy_executor.arg_dict["obs"][:] = obss
         self.policy_executor.arg_dict["act"][:] = policy_acts
         self.policy_executor.forward(is_train=True)
