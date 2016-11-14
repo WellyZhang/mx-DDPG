@@ -1,4 +1,4 @@
-from rllab.algos.ddpg import DDPG
+from ddpg import DDPG
 from rllab.envs.box2d.cartpole_env import CartpoleEnv
 from rllab.envs.normalized_env import normalize
 from policies import DeterministicMLPPolicy
@@ -8,7 +8,7 @@ from utils import SEED
 
 # set environment, policy, qfunc, strategy
 
-env = normalize(CartpoleEnv)
+env = normalize(CartpoleEnv())
 
 policy = DeterministicMLPPolicy(env.spec)
 qfunc = ContinuousMLPQ(env.spec)
