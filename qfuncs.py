@@ -45,7 +45,7 @@ class ContinuousMLPQ(QFunc):
     def define_loss(self, loss_exp):
 
         self.loss = mx.symbol.MakeLoss(loss_exp, name="qfunc_loss")
-        self.loss = mx.symbol.Group([self.loss, self.qval])
+        self.loss = mx.symbol.Group([self.loss, mx.symbol.BlockGrad(self.qval)])
 
     def define_exe(self, ctx, init, updater, input_shapes=None, args=None, 
                     grad_req=None):
