@@ -138,14 +138,14 @@ class DDPG(object):
         for name, arr in policy_grad_dict.items():
         	if name != "yval":
         		args_grad[name] = arr
-        
+
         self.policy_executor = policy_loss.bind(
             ctx=self.ctx,
         	args=args,
             args_grad=args_grad,
             grad_req="write")
         self.policy_executor_arg_dict = self.policy_executor.arg_dict
-        
+
         self.policy_executor_grad_dict = dict(zip(
             policy_loss.list_arguments(),
             self.policy_executor.grad_arrays))
@@ -177,7 +177,7 @@ class DDPG(object):
             logger.log("Training started")
             for epoch_itr in pyprind.prog_bar(range(self.epoch_length)):
                 # run the policy
-                if end:                
+                if end:
                     # reset the environment and stretegy when an episode ends
                     obs = self.env.reset()
                     self.strategy.reset()
@@ -185,7 +185,7 @@ class DDPG(object):
                     self.strategy_path_returns.append(path_return)
                     path_length = 0
                     path_return = 0
-                # note action is sampled from the policy not the target policy 
+                # note action is sampled from the policy not the target policy
                 act = self.strategy.get_action(obs, self.policy)
                 nxt, rwd, end, _ = self.env.step(act)
 
@@ -220,7 +220,7 @@ class DDPG(object):
     def do_update(self, itr, batch):
 
         obss, acts, rwds, ends, nxts = batch
-        
+
         self.policy_target.arg_dict["obs"][:] = nxts
         self.policy_target.forward(is_train=False)
         next_acts = self.policy_target.outputs[0].asnumpy()
@@ -267,13 +267,15 @@ class DDPG(object):
 
     def evaluate(self, epoch, memory):
 
-        logger.log("Collecting samples for evaluation")
-        rewards = sample_rewards(policy=self.policy,
-                                 max_samples=self.eval_samples,
-                                 max_path_length=self.max_path_length)
-        average_discounted_return = np.mean(
-            [discount_return(reward, self.discount) for reward in rewards])
-        returns = [sum(reward) for reward in rewards]
+        if epoch == self.n_epochs:
+            logger.log("Collecting samples for evaluation")
+            rewards = sample_rewards(env=self.env,
+                                     policy=self.policy,
+                                     eval_samples=self.eval_samples,
+                                     max_path_length=self.max_path_length)
+            average_discounted_return = np.mean(
+                [discount_return(reward, self.discount) for reward in rewards])
+            returns = [sum(reward) for reward in rewards]
 
         all_qs = np.concatenate(self.q_averages)
         all_ys = np.concatenate(self.y_averages)
@@ -282,14 +284,17 @@ class DDPG(object):
         average_policy_loss = np.mean(self.policy_loss_averages)
 
         logger.record_tabular('Epoch', epoch)
-        logger.record_tabular('AverageReturn', 
+        if epoch == self.n_epochs:
+            logger.record_tabular('AverageReturn',
                               np.mean(returns))
-        logger.record_tabular('StdReturn',
+            logger.record_tabular('StdReturn',
                               np.std(returns))
-        logger.record_tabular('MaxReturn',
+            logger.record_tabular('MaxReturn',
                               np.max(returns))
-        logger.record_tabular('MinReturn',
+            logger.record_tabular('MinReturn',
                               np.min(returns))
+            logger.record_tabular('AverageDiscountedReturn',
+                              average_discounted_return)
         if len(self.strategy_path_returns) > 0:
             logger.record_tabular('AverageEsReturn',
                                   np.mean(self.strategy_path_returns))
@@ -299,8 +304,6 @@ class DDPG(object):
                                   np.max(self.strategy_path_returns))
             logger.record_tabular('MinEsReturn',
                                   np.min(self.strategy_path_returns))
-        logger.record_tabular('AverageDiscountedReturn',
-                              average_discounted_return)
         logger.record_tabular('AverageQLoss', average_qfunc_loss)
         logger.record_tabular('AveragePolicyLoss', average_policy_loss)
         logger.record_tabular('AverageQ', np.mean(all_qs))
