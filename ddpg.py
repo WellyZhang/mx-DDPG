@@ -238,7 +238,7 @@ class DDPG(object):
 
         self.qfunc.update_params(obss, acts, ys)
         qfunc_loss = self.qfunc.exe.outputs[0].asnumpy()
-        qvals = self.qfunc.exe_qval.outputs[0].asnumpy()
+        qvals = self.qfunc.exe.outputs[1].asnumpy()
         self.policy_executor.arg_dict["obs"][:] = obss
         self.policy_executor.arg_dict["act"][:] = policy_acts
         self.policy_executor.forward(is_train=True)
@@ -258,7 +258,6 @@ class DDPG(object):
 
         self.qfunc_loss_averages.append(qfunc_loss)
         self.policy_loss_averages.append(policy_loss)
-        print np.mean(qvals)
         self.q_averages.append(qvals)
         self.y_averages.append(ys)
 
