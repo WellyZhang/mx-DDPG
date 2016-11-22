@@ -214,7 +214,7 @@ class DDPG(object):
             logger.dump_tabular(with_prefix=False)
             logger.pop_prefix()
 
-        self.env.terminate()
+        # self.env.terminate()
         # self.policy.terminate()
 
     def do_update(self, itr, batch):
@@ -267,7 +267,7 @@ class DDPG(object):
 
     def evaluate(self, epoch, memory):
 
-        if epoch == self.n_epochs:
+        if epoch == self.n_epochs - 1:
             logger.log("Collecting samples for evaluation")
             rewards = sample_rewards(env=self.env,
                                      policy=self.policy,
@@ -284,7 +284,7 @@ class DDPG(object):
         average_policy_loss = np.mean(self.policy_loss_averages)
 
         logger.record_tabular('Epoch', epoch)
-        if epoch == self.n_epochs:
+        if epoch == self.n_epochs - 1:
             logger.record_tabular('AverageReturn',
                               np.mean(returns))
             logger.record_tabular('StdReturn',
