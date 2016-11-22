@@ -2,6 +2,9 @@ import numpy as np
 
 
 class BaseStrategy(object):
+    """
+    Base class of exploration strategy.
+    """
 
     def get_action(self, obs, policy):
 
@@ -13,6 +16,10 @@ class BaseStrategy(object):
 
 
 class OUStrategy(BaseStrategy):
+    """
+    Ornstein-Uhlenbeck process: dxt = theta * (mu - xt) * dt + sigma * dWt
+    where Wt denotes the Wiener process.
+    """
 
     def __init__(self, env_spec, mu=0, theta=0.15, sigma=0.3):
 
@@ -36,6 +43,7 @@ class OUStrategy(BaseStrategy):
 
     def get_action(self, obs, policy):
 
+        # get_action accepts a 2D tensor with one row
     	obs = obs.reshape((1, -1))
         action = policy.get_action(obs)
         increment = self.evolve_state()

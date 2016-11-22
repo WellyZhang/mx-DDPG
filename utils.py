@@ -1,6 +1,6 @@
 import mxnet as mx
 
-
+# random seed for reproduction
 SEED = 12345
 
 

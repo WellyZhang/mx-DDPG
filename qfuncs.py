@@ -3,6 +3,9 @@ import mxnet as mx
 
 
 class QFunc(object):
+    """
+    Base class for Q-Value Function.
+    """
 
     def __init__(self, env_spec):
 
@@ -14,6 +17,10 @@ class QFunc(object):
 
 
 class ContinuousMLPQ(QFunc):
+    """
+    Continous Multi-Layer Perceptron Q-Value Network
+    for determnistic policy training.
+    """
 
     def __init__(
         self,
@@ -42,6 +49,7 @@ class ContinuousMLPQ(QFunc):
     def define_exe(self, ctx, init, updater, input_shapes=None, args=None, 
                     grad_req=None):
 
+        # define an executor, initializer and updater for batch version loss
         self.exe = self.loss.simple_bind(ctx=ctx, **input_shapes)
         self.arg_arrays = self.exe.arg_arrays
         self.grad_arrays = self.exe.grad_arrays
@@ -53,6 +61,9 @@ class ContinuousMLPQ(QFunc):
                 
         self.updater = updater
 
+        # define an executor for qval only
+        # used for q values without computing the loss
+        # note the parameters are shared
         args = {}
         for name, arr in self.exe.arg_dict.items():
             if name in self.qval.list_arguments():
@@ -60,7 +71,6 @@ class ContinuousMLPQ(QFunc):
         self.exe_qval = self.qval.bind(ctx=ctx,
                                        args=args,
                                        grad_req="null")
-
 
     def update_params(self, obs, act, yval):
 

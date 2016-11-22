@@ -3,6 +3,9 @@ import mxnet as mx
 
 
 class Policy(object):
+    """
+    Base class of policy.
+    """
 
     def __init__(self, env_spec):
 
@@ -24,6 +27,10 @@ class Policy(object):
 
 
 class DeterministicMLPPolicy(Policy):
+    """
+    Deterministic Multi-Layer Perceptron Policy used
+    for deterministic policy training.
+    """
 
     def __init__(
         self,
@@ -46,12 +53,16 @@ class DeterministicMLPPolicy(Policy):
                 "act": self.act}
 
     def define_loss(self, loss_exp):
+        """
+        Define loss of the policy. No need to do so here.
+        """
 
         raise NotImplementedError
 
     def define_exe(self, ctx, init, updater, input_shapes=None, args=None, 
                     grad_req=None):
 
+        # define an executor, initializer and updater for batch version
         self.exe = self.act.simple_bind(ctx=ctx, **input_shapes)
         self.arg_arrays = self.exe.arg_arrays
         self.grad_arrays = self.exe.grad_arrays
@@ -63,12 +74,15 @@ class DeterministicMLPPolicy(Policy):
                 
         self.updater = updater
 
+        # define an executor for sampled single observation
+        # note the parameters are shared
         new_input_shapes = {"obs": (1, input_shapes["obs"][1])}
         self.exe_one = self.exe.reshape(**new_input_shapes)
         self.arg_dict_one = self.exe_one.arg_dict
 
     def update_params(self, grad_from_top):
 
+        # policy accepts the gradient from the Value network
         self.exe.forward(is_train=True)
         self.exe.backward([grad_from_top])
 
@@ -78,6 +92,7 @@ class DeterministicMLPPolicy(Policy):
 
     def get_actions(self, obs):
 
+        # batch version
         self.arg_dict["obs"][:] = obs
         self.exe.forward(is_train=False)
 
@@ -85,6 +100,7 @@ class DeterministicMLPPolicy(Policy):
 
     def get_action(self, obs):
 
+        # single observation version
         self.arg_dict_one["obs"][:] = obs
         self.exe_one.forward(is_train=False)
 

@@ -71,6 +71,7 @@ class DDPG(object):
         loss_symbols = self.qfunc.get_loss_symbols()
         qval_sym = loss_symbols["qval"]
         yval_sym = loss_symbols["yval"]
+        # define loss here
         loss = 1.0 / self.batch_size * mx.symbol.sum(
             mx.symbol.square(qval_sym - yval_sym))
         qfunc_loss = loss
@@ -95,6 +96,7 @@ class DDPG(object):
         	}
         self.qfunc_target = qval_sym.simple_bind(ctx=self.ctx,
                                                  **qfunc_target_shapes)
+        # parameters are not shared but initialized the same
         for name, arr in self.qfunc_target.arg_dict.items():
             if name not in self.qfunc_input_shapes:
                 self.qfunc.arg_dict[name].copyto(arr)
@@ -105,6 +107,7 @@ class DDPG(object):
         loss_symbols = self.policy.get_loss_symbols()
         act_sym = loss_symbols["act"]
         policy_qval = qval_sym
+        # note the negative one here: the loss maximizes the average return
         loss = -1.0 / self.batch_size * mx.symbol.sum(policy_qval)
         policy_loss = loss
         policy_loss = mx.symbol.MakeLoss(policy_loss, name="policy_loss")
@@ -120,6 +123,9 @@ class DDPG(object):
             updater=policy_updater,
             input_shapes=self.policy_input_shapes)
 
+        # policy network and q-value network are combined to backpropage
+        # gradients from the policy loss
+        # since the loss is different, yval is not needed
         args = {}
         for name, arr in self.qfunc.arg_dict.items():
         	if name != "yval":
@@ -142,7 +148,8 @@ class DDPG(object):
             self.policy_executor.grad_arrays))
 
         # policy_target init
-
+        # target policy only needs to produce actions, not loss
+        # parameters are not shared but initialized the same
         self.policy_target = act_sym.simple_bind(ctx=self.ctx,
                                                  **self.policy_input_shapes)
         for name, arr in self.policy_target.arg_dict.items():
@@ -166,13 +173,16 @@ class DDPG(object):
             logger.push_prefix("epoch #%d | " % epoch)
             logger.log("Training started")
             for epoch_itr in pyprind.prog_bar(range(self.epoch_length)):
-                if end:
+                # run the policy
+                if end:                
+                    # reset the environment and stretegy when an episode ends
                     obs = self.env.reset()
                     self.strategy.reset()
                     # self.policy.reset()
                     self.strategy_path_returns.append(path_return)
                     path_length = 0
                     path_return = 0
+                # note action is sampled from the policy not the target policy 
                 act = self.strategy.get_action(obs, self.policy)
                 nxt, rwd, end, _ = self.env.step(act)
 
@@ -180,7 +190,7 @@ class DDPG(object):
                 path_return += rwd
 
                 if not end and path_length >= self.max_path_length:
-                    terminal = True
+                    end = True
                     if self.include_horizon_terminal:
                         memory.add_sample(obs, act, rwd, end)
                 else:
@@ -208,6 +218,7 @@ class DDPG(object):
 
         obss, acts, rwds, ends, nxts = batch
 
+        
         self.policy_target.arg_dict["obs"][:] = nxts
         self.policy_target.forward(is_train=False)
         next_acts = self.policy_target.outputs[0].asnumpy()
@@ -217,10 +228,10 @@ class DDPG(object):
         self.qfunc_target.forward(is_train=False)
         next_qvals = self.qfunc_target.outputs[0].asnumpy()
 
+        # executor accepts tensors
         rwds = rwds.reshape((-1, 1))
         ends = ends.reshape((-1, 1))
         ys = rwds + (1.0 - ends) * self.discount * next_qvals
-
 
         # since policy_executor shares the grad arrays with qfunc
         # the update order could not be changed
@@ -235,14 +246,15 @@ class DDPG(object):
         self.policy_executor.backward()
         self.policy.update_params(self.policy_executor_grad_dict["act"])
 
+        # update target networks
         for name, arr in self.policy_target.arg_dict.items():
             if name not in self.policy_input_shapes:
                 arr = (1.0 - self.soft_target_tau) * arr + \
-                       self.soft_target_tau * self.policy.arg_dict[name]
+                      self.soft_target_tau * self.policy.arg_dict[name]
         for name, arr in self.qfunc_target.arg_dict.items():
             if name not in self.qfunc_input_shapes:
                 arr = (1.0 - self.soft_target_tau) * arr + \
-                       self.soft_target_tau * self.qfunc.arg_dict[name]
+                      self.soft_target_tau * self.qfunc.arg_dict[name]
 
         self.qfunc_loss_averages.append(qfunc_loss)
         self.policy_loss_averages.append(policy_loss)
