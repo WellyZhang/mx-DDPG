@@ -33,6 +33,7 @@ class DDPG(object):
         seed=12345):
 
         mx.random.seed(seed)
+        np.random.seed(seed)
 
         self.env = env
         self.ctx = ctx
