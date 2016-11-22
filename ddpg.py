@@ -258,6 +258,7 @@ class DDPG(object):
 
         self.qfunc_loss_averages.append(qfunc_loss)
         self.policy_loss_averages.append(policy_loss)
+        print np.mean(qvals)
         self.q_averages.append(qvals)
         self.y_averages.append(ys)
 
