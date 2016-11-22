@@ -1,4 +1,5 @@
 from replay_mem import ReplayMem
+from utils import discount_return, sample_rewards
 import rllab.misc.logger as logger
 import pyprind
 import mxnet as mx
@@ -21,6 +22,7 @@ class DDPG(object):
         memory_start_size=1000,
         discount=0.99,
         max_path_length=1000,
+        eval_samples=10000,
         qfunc_updater="adam",
         qfunc_lr=1e-4,
         policy_updater="adam",
@@ -44,6 +46,7 @@ class DDPG(object):
         self.memory_start_size = memory_start_size
         self.discount = discount
         self.max_path_length = max_path_length
+        self.eval_samples = eval_samples
         self.qfunc_updater = qfunc_updater
         self.qfunc_lr = qfunc_lr
         self.policy_updater = policy_updater
@@ -217,7 +220,6 @@ class DDPG(object):
     def do_update(self, itr, batch):
 
         obss, acts, rwds, ends, nxts = batch
-
         
         self.policy_target.arg_dict["obs"][:] = nxts
         self.policy_target.forward(is_train=False)
@@ -228,7 +230,7 @@ class DDPG(object):
         self.qfunc_target.forward(is_train=False)
         next_qvals = self.qfunc_target.outputs[0].asnumpy()
 
-        # executor accepts tensors
+        # executor accepts 2D tensors
         rwds = rwds.reshape((-1, 1))
         ends = ends.reshape((-1, 1))
         ys = rwds + (1.0 - ends) * self.discount * next_qvals
@@ -237,6 +239,8 @@ class DDPG(object):
         # the update order could not be changed
 
         self.qfunc.update_params(obss, acts, ys)
+        # in update values all computed
+        # no need to recompute qfunc_loss and qvals
         qfunc_loss = self.qfunc.exe.outputs[0].asnumpy()
         qvals = self.qfunc.exe.outputs[1].asnumpy()
         self.policy_executor.arg_dict["obs"][:] = obss
@@ -263,12 +267,29 @@ class DDPG(object):
 
     def evaluate(self, epoch, memory):
 
+        logger.log("Collecting samples for evaluation")
+        rewards = sample_rewards(policy=self.policy,
+                                 max_samples=self.eval_samples,
+                                 max_path_length=self.max_path_length)
+        average_discounted_return = np.mean(
+            [discount_return(reward, self.discount) for reward in rewards])
+        returns = [sum(reward) for reward in rewards]
+
         all_qs = np.concatenate(self.q_averages)
         all_ys = np.concatenate(self.y_averages)
 
         average_qfunc_loss = np.mean(self.qfunc_loss_averages)
         average_policy_loss = np.mean(self.policy_loss_averages)
 
+        logger.record_tabular('Epoch', epoch)
+        logger.record_tabular('AverageReturn', 
+                              np.mean(returns))
+        logger.record_tabular('StdReturn',
+                              np.std(returns))
+        logger.record_tabular('MaxReturn',
+                              np.max(returns))
+        logger.record_tabular('MinReturn',
+                              np.min(returns))
         if len(self.strategy_path_returns) > 0:
             logger.record_tabular('AverageEsReturn',
                                   np.mean(self.strategy_path_returns))
@@ -278,8 +299,10 @@ class DDPG(object):
                                   np.max(self.strategy_path_returns))
             logger.record_tabular('MinEsReturn',
                                   np.min(self.strategy_path_returns))
+        logger.record_tabular('AverageDiscountedReturn',
+                              average_discounted_return)
         logger.record_tabular('AverageQLoss', average_qfunc_loss)
-        logger.record_tabular('AveragePolicySurr', average_policy_loss)
+        logger.record_tabular('AveragePolicyLoss', average_policy_loss)
         logger.record_tabular('AverageQ', np.mean(all_qs))
         logger.record_tabular('AverageAbsQ', np.mean(np.abs(all_qs)))
         logger.record_tabular('AverageY', np.mean(all_ys))

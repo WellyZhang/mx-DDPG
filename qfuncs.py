@@ -62,19 +62,6 @@ class ContinuousMLPQ(QFunc):
                 
         self.updater = updater
 
-        """
-        # define an executor for qval only
-        # used for q values without computing the loss
-        # note the parameters are shared
-        args = {}
-        for name, arr in self.exe.arg_dict.items():
-            if name in self.qval.list_arguments():
-                args[name] = arr
-        self.exe_qval = self.qval.bind(ctx=ctx,
-                                       args=args,
-                                       grad_req="null")
-        """
-
     def update_params(self, obs, act, yval):
 
         self.arg_dict["obs"][:] = obs
