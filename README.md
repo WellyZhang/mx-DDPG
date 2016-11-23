@@ -5,6 +5,8 @@ MXNet Implementation of DDPG
 
 This is the MXNet implementation of [DDPG](https://arxiv.org/abs/1509.02971). It is tested in the rllab cart pole environment against rllab's native implementation and achieves comparably similar results. You can substitute with this anywhere you use rllab's DDPG with minor modifications.
 
+This repo is already merged into [MXNet](https://github.com/dmlc/mxnet/tree/master/example/reinforcement-learning/ddpg).
+
 # Dependency
 
 * rllab
